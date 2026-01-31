@@ -13,110 +13,165 @@ blueprint:
     # --- GERÄTE ---
     cover_entity:
       name: Jalousie (HmIP-BBL)
-      selector: { entity: { domain: cover, integration: homematicip_local } }
+      selector:
+        entity:
+          domain: cover
+          integration: homematicip_local
     temp_sensor_in:
       name: Raumthermostat
-      selector: { entity: { domain: sensor, device_class: temperature } }
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
 
     # --- ADAPTIVE TILT (0-50% LOGIK) ---
     adaptive_tilt_mode:
       name: "Dynamische Lamellennachführung?"
       description: "Berechnet Winkel anhand Sonnenhöhe (Elevation)."
       default: true
-      selector: { boolean: {} }
+      selector:
+        boolean: {}
     adaptive_min_tilt:
       name: "Tilt bei tiefer Sonne (0° Elev)"
       description: "Sollte 0 sein (ganz zu)."
       default: 0
-      selector: { number: { min: 0, max: 50 } }
+      selector:
+        number:
+          min: 0
+          max: 50
     adaptive_max_tilt:
       name: "Tilt bei hoher Sonne (>60° Elev)"
       description: "Sollte 50 sein (waagerecht). Nicht höher gehen!"
       default: 50
-      selector: { number: { min: 0, max: 50 } }
+      selector:
+        number:
+          min: 0
+          max: 50
     
     # --- ZEITEN ---
     workday_sensor:
       name: Arbeitstag-Sensor
       default: binary_sensor.workday_sensor
-      selector: { entity: { domain: binary_sensor } }
+      selector:
+        entity:
+          domain: binary_sensor
     time_earliest_workday:
       name: "Öffnen: Frühestens (Werktag)"
       default: "06:30:00"
-      selector: { time: {} }
+      selector:
+        time: {}
     time_earliest_weekend:
       name: "Öffnen: Frühestens (Wochenende)"
       default: "08:30:00"
-      selector: { time: {} }
+      selector:
+        time: {}
     time_latest_open:
       name: "Öffnen: Spätestens (Force Open)"
       default: "10:00:00"
-      selector: { time: {} }
+      selector:
+        time: {}
     time_earliest_close:
       name: "Schließen: Frühestens"
       default: "17:00:00"
-      selector: { time: {} }
+      selector:
+        time: {}
     time_latest_close:
       name: "Schließen: Spätestens"
       default: "22:30:00"
-      selector: { time: {} }
+      selector:
+        time: {}
 
     # --- FENSTER GEOMETRIE ---
     azimuth_start:
       name: Azimut Start
       default: 100
-      selector: { number: { min: 0, max: 360 } }
+      selector:
+        number:
+          min: 0
+          max: 360
     azimuth_end:
       name: Azimut Ende
       default: 260
-      selector: { number: { min: 0, max: 360 } }
+      selector:
+        number:
+          min: 0
+          max: 360
 
     # --- GLOBALE SENSOREN ---
     temp_sensor_out:
       name: Sensor Außentemperatur
-      selector: { entity: { domain: sensor, device_class: temperature } }
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
     wind_sensor:
       name: Sensor Wind
-      selector: { entity: { domain: sensor, device_class: wind_speed } }
+      selector:
+        entity:
+          domain: sensor
+          device_class: wind_speed
     illuminance_sensor:
       name: Sensor Helligkeit (SenseBox)
-      selector: { entity: { domain: sensor, device_class: illuminance } }
+      selector:
+        entity:
+          domain: sensor
+          device_class: illuminance
     weather_entity:
       name: Wettervorhersage
-      selector: { entity: { domain: weather } }
+      selector:
+        entity:
+          domain: weather
     sun_entity:
       name: Sonne
       default: sun.sun
-      selector: { entity: { domain: sun } }
+      selector:
+        entity:
+          domain: sun
 
     # --- HELFER (Global) ---
     helper_temp_in_target:
       name: "Helfer: Zieltemperatur Innen"
-      selector: { entity: { domain: input_number } }
+      selector:
+        entity:
+          domain: input_number
     helper_temp_out_min:
       name: "Helfer: Min. Außentemperatur"
-      selector: { entity: { domain: input_number } }
+      selector:
+        entity:
+          domain: input_number
     helper_wind_limit:
       name: "Helfer: Wind Limit"
-      selector: { entity: { domain: input_number } }
+      selector:
+        entity:
+          domain: input_number
     helper_lux_min:
       name: "Helfer: Lux Tagesschwelle"
-      selector: { entity: { domain: input_number } }
+      selector:
+        entity:
+          domain: input_number
     helper_lux_spike:
       name: "Helfer: Lux Direktschwelle"
-      selector: { entity: { domain: input_number } }
+      selector:
+        entity:
+          domain: input_number
 
     # --- STATIC FALLBACK ---
     shading_height:
       name: Beschattungshöhe (Static)
       description: "0 = Unten (Standard)."
       default: 0
-      selector: { number: { min: 0, max: 100 } }
+      selector:
+        number:
+          min: 0
+          max: 100
     shading_tilt_static:
       name: Beschattungswinkel (Static)
       description: "Nur genutzt, wenn Adaptive Mode AUS ist. Max 50!"
       default: 50
-      selector: { number: { min: 0, max: 50 } }
+      selector:
+        number:
+          min: 0
+          max: 50
 
 variables:
   # ... VAR MAPPING ...
@@ -200,7 +255,7 @@ action:
               paramset_key: VALUES
               paramset:
                 LEVEL: 0.0
-                LEVEL_2: 0.0 # Zu
+                LEVEL_2: 0.0
 
       # 3. BESCHATTUNG (HYBRID + ADAPTIVE 0-50)
       - conditions:
