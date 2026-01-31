@@ -1,155 +1,173 @@
 blueprint:
-  name: "HmIP-BBL: Hybrid-Beschattung (Global Helpers)"
+  name: "HmIP-BBL: Master V7 (0-50% Tilt Logic)"
   description: >
-    Steuert Homematic IP BBL Jalousien via Homematic(IP) Local.
+    Spezial-Version für Raffstores mit 0-50% Arbeitsbereich.
+    0% = Geschlossen (Zu).
+    50% = Waagerecht (Offen/Maximal).
+    Werte >50% werden für Beschattung vermieden (Wendung).
     
-    Features:
-    - Kombinierter Befehl (Höhe & Lamelle) gegen Ruckeln.
-    - Globale Grenzwerte über Input Number Helfer (skalierbar für viele Fenster).
-    - Hybrid-Lichterkennung: Nutzt Lux-Sensor (auch im Schatten) + Wetterdaten.
-    - Azimut-Steuerung pro Fenster.
+    Features: Adaptive Hitzeschutz-Nachführung (0-50%), Hybrid-Lichterkennung,
+    Wochentags-Logik, globale Helfer.
   domain: automation
-  source_url: https://gist.github.com/dein_user/dein_gist_id
   input:
-    # --- INDIVIDUELLE GERÄTE ---
+    # --- GERÄTE ---
     cover_entity:
-      name: Raffstore (HmIP-BBL)
-      selector:
-        entity:
-          domain: cover
-          integration: homematicip_local
+      name: Jalousie (HmIP-BBL)
+      selector: { entity: { domain: cover, integration: homematicip_local } }
     temp_sensor_in:
-      name: Raumthermostat (Ist-Wert)
-      selector:
-        entity:
-          domain: sensor
-          device_class: temperature
+      name: Raumthermostat
+      selector: { entity: { domain: sensor, device_class: temperature } }
 
-    # --- FENSTER PARAMETER ---
+    # --- ADAPTIVE TILT (0-50% LOGIK) ---
+    adaptive_tilt_mode:
+      name: "Dynamische Lamellennachführung?"
+      description: "Berechnet Winkel anhand Sonnenhöhe (Elevation)."
+      default: true
+      selector: { boolean: {} }
+    adaptive_min_tilt:
+      name: "Tilt bei tiefer Sonne (0° Elev)"
+      description: "Sollte 0 sein (ganz zu)."
+      default: 0
+      selector: { number: { min: 0, max: 50 } }
+    adaptive_max_tilt:
+      name: "Tilt bei hoher Sonne (>60° Elev)"
+      description: "Sollte 50 sein (waagerecht). Nicht höher gehen!"
+      default: 50
+      selector: { number: { min: 0, max: 50 } }
+    
+    # --- ZEITEN ---
+    workday_sensor:
+      name: Arbeitstag-Sensor
+      default: binary_sensor.workday_sensor
+      selector: { entity: { domain: binary_sensor } }
+    time_earliest_workday:
+      name: "Öffnen: Frühestens (Werktag)"
+      default: "06:30:00"
+      selector: { time: {} }
+    time_earliest_weekend:
+      name: "Öffnen: Frühestens (Wochenende)"
+      default: "08:30:00"
+      selector: { time: {} }
+    time_latest_open:
+      name: "Öffnen: Spätestens (Force Open)"
+      default: "10:00:00"
+      selector: { time: {} }
+    time_earliest_close:
+      name: "Schließen: Frühestens"
+      default: "17:00:00"
+      selector: { time: {} }
+    time_latest_close:
+      name: "Schließen: Spätestens"
+      default: "22:30:00"
+      selector: { time: {} }
+
+    # --- FENSTER GEOMETRIE ---
     azimuth_start:
-      name: Azimut Start (Grad)
-      description: "Ab wann scheint die Sonne auf dieses Fenster?"
+      name: Azimut Start
       default: 100
-      selector:
-        number:
-          min: 0
-          max: 360
+      selector: { number: { min: 0, max: 360 } }
     azimuth_end:
-      name: Azimut Ende (Grad)
-      description: "Wann verschwindet die Sonne wieder?"
+      name: Azimut Ende
       default: 260
-      selector:
-        number:
-          min: 0
-          max: 360
+      selector: { number: { min: 0, max: 360 } }
 
     # --- GLOBALE SENSOREN ---
     temp_sensor_out:
-      name: Außentemperatur Sensor
-      selector:
-        entity:
-          domain: sensor
-          device_class: temperature
+      name: Sensor Außentemperatur
+      selector: { entity: { domain: sensor, device_class: temperature } }
     wind_sensor:
-      name: Windsensor (km/h)
-      selector:
-        entity:
-          domain: sensor
-          device_class: wind_speed
+      name: Sensor Wind
+      selector: { entity: { domain: sensor, device_class: wind_speed } }
     illuminance_sensor:
-      name: Helligkeitssensor (Lux)
-      description: "Kann im Schatten liegen."
-      selector:
-        entity:
-          domain: sensor
-          device_class: illuminance
+      name: Sensor Helligkeit (SenseBox)
+      selector: { entity: { domain: sensor, device_class: illuminance } }
     weather_entity:
       name: Wettervorhersage
-      description: "Wird genutzt, wenn Lux-Sensor im Schatten ist."
-      selector:
-        entity:
-          domain: weather
+      selector: { entity: { domain: weather } }
     sun_entity:
       name: Sonne
       default: sun.sun
-      selector:
-        entity:
-          domain: sun
+      selector: { entity: { domain: sun } }
 
-    # --- GLOBALE HELFER (INPUT NUMBERS) ---
+    # --- HELFER (Global) ---
     helper_temp_in_target:
       name: "Helfer: Zieltemperatur Innen"
-      selector:
-        entity:
-          domain: input_number
+      selector: { entity: { domain: input_number } }
     helper_temp_out_min:
       name: "Helfer: Min. Außentemperatur"
-      selector:
-        entity:
-          domain: input_number
+      selector: { entity: { domain: input_number } }
     helper_wind_limit:
-      name: "Helfer: Wind Limit (km/h)"
-      selector:
-        entity:
-          domain: input_number
+      name: "Helfer: Wind Limit"
+      selector: { entity: { domain: input_number } }
     helper_lux_min:
-      name: "Helfer: Lux Tagesschwelle (Schatten)"
-      description: "Wert für 'Es ist Tag' im Schatten (z.B. 300)"
-      selector:
-        entity:
-          domain: input_number
+      name: "Helfer: Lux Tagesschwelle"
+      selector: { entity: { domain: input_number } }
     helper_lux_spike:
       name: "Helfer: Lux Direktschwelle"
-      description: "Wert bei direkter Sonne (Wetter egal)"
-      selector:
-        entity:
-          domain: input_number
-    
-    # --- POSITIONEN ---
-    # Optional auch als Helfer möglich, hier fest für Einfachheit, 
-    # oder du erstellst Helfer dafür.
+      selector: { entity: { domain: input_number } }
+
+    # --- STATIC FALLBACK ---
     shading_height:
-      name: Beschattungshöhe (0-100%)
+      name: Beschattungshöhe (Static)
+      description: "0 = Unten (Standard)."
       default: 0
-      selector:
-        number:
-          min: 0
-          max: 100
-    shading_tilt:
-      name: Beschattungswinkel (0-100%)
+      selector: { number: { min: 0, max: 100 } }
+    shading_tilt_static:
+      name: Beschattungswinkel (Static)
+      description: "Nur genutzt, wenn Adaptive Mode AUS ist. Max 50!"
       default: 50
-      selector:
-        number:
-          min: 0
-          max: 100
+      selector: { number: { min: 0, max: 50 } }
 
 variables:
+  # ... VAR MAPPING ...
   cover_entity: !input cover_entity
+  sun_ent: !input sun_entity
+  use_adaptive: !input adaptive_tilt_mode
+  
+  # TILT BERECHNUNG (0-50 Range)
+  t_min: !input adaptive_min_tilt
+  t_max: !input adaptive_max_tilt
+  elevation: "{{ state_attr(sun_ent, 'elevation') | float(0) }}"
+  
+  calc_tilt: >
+    {% if use_adaptive %}
+      {# Elevation 0-60 Grad auf Bereich t_min-t_max mappen #}
+      {% set el_clamped = [0, [elevation, 60]|min]|max %}
+      {% set factor = el_clamped / 60.0 %}
+      {# Beispiel: Elev 30 -> Factor 0.5 -> 0 + 0.5 * (50-0) = 25% #}
+      {% set dynamic = t_min + (factor * (t_max - t_min)) %}
+      {{ dynamic | int }}
+    {% else %}
+      {{ inputs.shading_tilt_static | int }}
+    {% endif %}
+
+  # ... RESTLICHE VARS ...
+  workday_ent: !input workday_sensor
   weather_ent: !input weather_entity
   lux_ent: !input illuminance_sensor
-  
-  # Mapping der Inputs auf Variablen
   h_temp_in: !input helper_temp_in_target
   h_temp_out: !input helper_temp_out_min
   h_wind: !input helper_wind_limit
   h_lux_min: !input helper_lux_min
   h_lux_spike: !input helper_lux_spike
-  
+  t_early_work: !input time_earliest_workday
+  t_early_we: !input time_earliest_weekend
+  t_latest_open: !input time_latest_open
+  t_early_close: !input time_earliest_close
+  t_latest_close: !input time_latest_close
   az_start: !input azimuth_start
   az_end: !input azimuth_end
   
-  # Umrechnung Homematic
+  # Homematic 0.0 - 1.0 (Höhe) und 0.0 - 0.5 (Tilt für 0-50%)
   pos_h: "{{ (inputs.shading_height | float) / 100.0 }}"
-  pos_t: "{{ (inputs.shading_tilt | float) / 100.0 }}"
+  pos_t: "{{ (calc_tilt | float) / 100.0 }}"
 
 trigger:
   - platform: time_pattern
     minutes: "/5"
-  # Trigger auf Wind (Sicherheit)
   - platform: numeric_state
     entity_id: !input wind_sensor
     above: !input helper_wind_limit
-  # Trigger auf Raumtemperatur
   - platform: numeric_state
     entity_id: !input temp_sensor_in
     above: !input helper_temp_in_target
@@ -166,11 +184,15 @@ action:
             target:
               entity_id: !input cover_entity
       
-      # 2. NACHT
+      # 2. SCHLIEßEN (INTELLIGENT)
       - conditions:
-          - condition: state
-            entity_id: !input sun_entity
-            state: "below_horizon"
+          - condition: template
+            value_template: >
+              {% set sun_down = is_state(sun_ent, 'below_horizon') %}
+              {% set t_now = now().strftime('%H:%M:%S') %}
+              {% set force_close = t_now >= t_latest_close %}
+              {% set sunset_close = sun_down and (t_now >= t_early_close) %}
+              {{ force_close or sunset_close }}
         sequence:
           - service: homematicip_local.put_paramset
             data:
@@ -178,65 +200,29 @@ action:
               paramset_key: VALUES
               paramset:
                 LEVEL: 0.0
-                LEVEL_2: 0.0
+                LEVEL_2: 0.0 # Zu
 
-      # 3. BESCHATTUNG (HYBRID)
+      # 3. BESCHATTUNG (HYBRID + ADAPTIVE 0-50)
       - conditions:
           - condition: state
             entity_id: !input sun_entity
             state: "above_horizon"
-          
-          # Azimut Check
           - condition: template
             value_template: >
-              {% set az = state_attr(inputs.sun_entity, 'azimuth') | float(0) %}
+              {% set az = state_attr(sun_ent, 'azimuth') | float(0) %}
               {{ az >= az_start and az <= az_end }}
-          
-          # Temp Checks (Helfer)
           - condition: numeric_state
             entity_id: !input temp_sensor_in
             above: !input helper_temp_in_target
           - condition: numeric_state
             entity_id: !input temp_sensor_out
             above: !input helper_temp_out_min
-          
-          # Lux/Wetter Hybrid Logic
           - condition: template
             value_template: >
               {% set min_l = states(h_lux_min)|float(300) %}
               {% set spike_l = states(h_lux_spike)|float(20000) %}
               {% set cur_l = states(lux_ent)|float(0) %}
-              
               {% set is_day = cur_l > min_l %}
               {% set is_spike = cur_l > spike_l %}
               {% set weather_ok = states(weather_ent) in ['sunny', 'partlycloudy', 'clear-night'] %}
-              
-              {{ is_spike or (is_day and weather_ok) }}
-        
-        sequence:
-          - if:
-              - condition: template
-                value_template: >
-                  {{ state_attr(cover_entity, 'current_position')|int != inputs.shading_height 
-                     or state_attr(cover_entity, 'current_tilt_position')|int != inputs.shading_tilt }}
-            then:
-              - service: homematicip_local.put_paramset
-                data:
-                  device_id: "{{ device_id(cover_entity) }}"
-                  paramset_key: VALUES
-                  paramset:
-                    LEVEL: "{{ pos_h }}"
-                    LEVEL_2: "{{ pos_t }}"
-
-    # 4. DEFAULT (Hochfahren)
-    default:
-      - if:
-          - condition: state
-            entity_id: !input sun_entity
-            state: "above_horizon"
-          - condition: template
-            value_template: "{{ state_attr(cover_entity, 'current_position') < 95 }}"
-        then:
-          - service: cover.open_cover
-            target:
-              entity_id: !input cover_entity
+              {{ is_spike or (is_day and weather_ok
