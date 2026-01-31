@@ -225,4 +225,48 @@ action:
               {% set is_day = cur_l > min_l %}
               {% set is_spike = cur_l > spike_l %}
               {% set weather_ok = states(weather_ent) in ['sunny', 'partlycloudy', 'clear-night'] %}
-              {{ is_spike or (is_day and weather_ok
+              {{ is_spike or (is_day and weather_ok) }}
+        sequence:
+          # Hysterese Prüfung (Ruckelschutz)
+          - if:
+              - condition: template
+                value_template: >
+                  {% set current_h = state_attr(cover_entity, 'current_position') | int %}
+                  {% set current_t = state_attr(cover_entity, 'current_tilt_position') | int %}
+                  {% set target_h = (inputs.shading_height | int) %}
+                  {% set target_t = (calc_tilt | int) %}
+                  
+                  {# Nur fahren wenn Tilt um >3% abweicht (feinere Auflösung für 0-50 Bereich) #}
+                  {% set tilt_diff = (current_t - target_t) | abs %}
+                  {% set tilt_mismatch = tilt_diff > 3 %}
+                  {% set height_mismatch = current_h != target_h %}
+                  
+                  {{ height_mismatch or tilt_mismatch }}
+            then:
+              - service: homematicip_local.put_paramset
+                data:
+                  device_id: "{{ device_id(cover_entity) }}"
+                  paramset_key: VALUES
+                  paramset:
+                    LEVEL: "{{ pos_h }}"
+                    LEVEL_2: "{{ pos_t }}"
+
+    # 4. DEFAULT: ÖFFNEN
+    default:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >
+                  {% set is_work = states(workday_ent) == 'on' %}
+                  {% set early_time = t_early_work if is_work else t_early_we %}
+                  {% set t_now = now().strftime('%H:%M:%S') %}
+                  {% set is_after_early = t_now >= early_time %}
+                  {% set is_after_latest = t_now >= t_latest_open %}
+                  {% set is_sun_up = is_state(sun_ent, 'above_horizon') %}
+                  {{ (is_sun_up and is_after_early) or is_after_latest }}
+              - condition: template
+                value_template: "{{ state_attr(cover_entity, 'current_position') < 95 }}"
+            sequence:
+              - service: cover.open_cover
+                target:
+                  entity_id: !input cover_entity
